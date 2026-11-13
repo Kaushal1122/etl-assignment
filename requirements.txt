@@ -1,4 +1,4 @@
-pandas>=2.2
+pandas>=2.2,<3.0
 PyYAML>=6.0
 country-converter>=1.3
 
