@@ -1,0 +1,26 @@
+# Input dataset
+input:
+  file_path: data/survey_results_public.csv
+  country_column: Country
+
+# Output settings
+output:
+  directory: reports
+
+# Logging settings
+logging:
+  directory: logs
+  file_name: etl.log
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# ETL settings
+etl:
+  compensation_column: ConvertedComp
+  age_column: Age1stCode
+  worked_languages_column: LanguageWorkedWith
+  desired_languages_column: LanguageDesireNextYear
+  hobbyist_column: Hobbyist
+  gender_column: Gender
+  job_satisfaction_column: JobSat
+  career_satisfaction_column: CareerSat
