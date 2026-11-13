@@ -1,3 +1,4 @@
+
 import country_converter as coco
 import pandas as pd
 
@@ -8,23 +9,33 @@ def add_continent_column(dataframe, config, logger):
     country_column = config["input"]["country_column"]
 
     if country_column not in dataframe.columns:
-        raise ValueError(f"Country column not found: {country_column}")
+        raise ValueError(
+            f"Country column not found: {country_column}"
+        )
 
     logger.info("Starting country-to-continent mapping.")
 
     transformed_data = dataframe.copy()
 
     countries = (
-        transformed_data[country_column].dropna().astype(str).unique().tolist()
+        transformed_data[country_column]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
     )
 
     converter = coco.CountryConverter()
 
     continents = converter.convert(
-        names=countries, to="continent_7", not_found="Unknown"
+        names=countries,
+        to="continent_7",
+        not_found="Unknown"
     )
 
-    country_mapping = dict(zip(countries, continents, strict=True))
+    country_mapping = dict(
+        zip(countries, continents, strict=True)
+    )
 
     transformed_data["Continent"] = (
         transformed_data[country_column]
@@ -33,10 +44,17 @@ def add_continent_column(dataframe, config, logger):
         .fillna("Unknown")
     )
 
-    unknown_count = (transformed_data["Continent"] == "Unknown").sum()
+    unknown_count = (
+        transformed_data["Continent"] == "Unknown"
+    ).sum()
 
-    logger.info("Country-to-continent mapping completed.")
-    logger.info("Unknown or missing countries: %d", unknown_count)
+    logger.info(
+        "Country-to-continent mapping completed."
+    )
+    logger.info(
+        "Unknown or missing countries: %d",
+        unknown_count
+    )
 
     return transformed_data
 
@@ -47,23 +65,32 @@ def clean_age_first_code(dataframe, config, logger):
     age_column = config["etl"]["age_column"]
 
     if age_column not in dataframe.columns:
-        raise ValueError(f"Age column not found: {age_column}")
+        raise ValueError(
+            f"Age column not found: {age_column}"
+        )
 
     logger.info("Starting age column cleaning.")
 
     transformed_data = dataframe.copy()
 
-    numeric_ages = pd.to_numeric(transformed_data[age_column], errors="coerce")
+    numeric_ages = pd.to_numeric(
+        transformed_data[age_column],
+        errors="coerce"
+    )
 
     non_numeric_count = (
-        transformed_data[age_column].notna() & numeric_ages.isna()
+        transformed_data[age_column].notna()
+        & numeric_ages.isna()
     ).sum()
 
     transformed_data[age_column] = numeric_ages
 
-    logger.info("Age column cleaning completed.")
     logger.info(
-        "Non-numeric age responses converted to missing: %d", non_numeric_count
+        "Age column cleaning completed."
+    )
+    logger.info(
+        "Non-numeric age responses converted to missing: %d",
+        non_numeric_count
     )
 
     return transformed_data
@@ -75,7 +102,9 @@ def add_python_knowledge_column(dataframe, config, logger):
     language_column = config["etl"]["worked_languages_column"]
 
     if language_column not in dataframe.columns:
-        raise ValueError(f"Language column not found: {language_column}")
+        raise ValueError(
+            f"Language column not found: {language_column}"
+        )
 
     logger.info("Starting Python knowledge identification.")
 
@@ -88,37 +117,69 @@ def add_python_knowledge_column(dataframe, config, logger):
         return "Python" in languages.split(";")
 
     transformed_data["KnowsPython"] = (
-        transformed_data[language_column].apply(knows_python).astype("boolean")
+        transformed_data[language_column]
+        .apply(knows_python)
+        .astype("boolean")
     )
 
-    logger.info("Python knowledge identification completed.")
+    logger.info(
+        "Python knowledge identification completed."
+    )
 
     return transformed_data
 
 
 def add_gender_category(dataframe, config, logger):
-    """Classify gender responses into three categories."""
+    """Classify gender responses and preserve missing responses."""
 
     gender_column = config["etl"]["gender_column"]
 
     if gender_column not in dataframe.columns:
-        raise ValueError(f"Gender column not found: {gender_column}")
+        raise ValueError(
+            f"Gender column not found: {gender_column}"
+        )
 
     logger.info("Starting gender classification.")
 
     transformed_data = dataframe.copy()
 
-    gender_mapping = {"Man": "MAN", "Woman": "WOMAN"}
+    gender_mapping = {
+        "Man": "MAN",
+        "Woman": "WOMAN"
+    }
 
-    transformed_data["GenderCategory"] = (
-        transformed_data[gender_column].map(gender_mapping).fillna("OTHERS")
+    gender_responses = (
+        transformed_data[gender_column]
+        .astype("string")
+        .str.strip()
     )
 
-    logger.info("Gender classification completed.")
+    gender_categories = gender_responses.map(
+        gender_mapping
+    )
+
+    has_response = (
+        gender_responses.notna()
+        & gender_responses.ne("")
+    )
+
+    gender_categories.loc[
+        has_response & gender_categories.isna()
+    ] = "OTHERS"
+
+    gender_categories = gender_categories.astype("string")
+
+    transformed_data["GenderCategory"] = gender_categories
+
+    logger.info(
+        "Gender classification completed."
+    )
 
     logger.info(
         "Gender category counts: %s",
-        transformed_data["GenderCategory"].value_counts().to_dict(),
+        transformed_data["GenderCategory"]
+        .value_counts(dropna=False)
+        .to_dict()
     )
 
     return transformed_data
