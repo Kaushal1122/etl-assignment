@@ -1,5 +1,11 @@
+
+
+
+MIN_RESPONDENTS_PER_COUNTRY = 10
+
+
 def calculate_python_percentage(dataframe, config, logger):
-    """Calculate the percentage of Python developers by country."""
+    """Calculate Python knowledge percentage by country."""
 
     country_column = config["input"]["country_column"]
 
@@ -26,6 +32,14 @@ def calculate_python_percentage(dataframe, config, logger):
         .reset_index()
     )
 
+    excluded_countries = (
+        report["TotalRespondents"] < MIN_RESPONDENTS_PER_COUNTRY
+    ).sum()
+
+    report = report[
+        report["TotalRespondents"] >= MIN_RESPONDENTS_PER_COUNTRY
+    ].copy()
+
     report["PythonPercentage"] = (report["PythonPercentage"] * 100).round(2)
 
     report = report.sort_values(
@@ -33,14 +47,21 @@ def calculate_python_percentage(dataframe, config, logger):
     ).reset_index(drop=True)
 
     logger.info(
-        "Python percentage report calculated for %d countries.", len(report)
+        "Excluded %d countries with fewer than %d valid respondents.",
+        excluded_countries,
+        MIN_RESPONDENTS_PER_COUNTRY,
+    )
+
+    logger.info(
+        "Python percentage report calculated for %d countries.",
+        len(report),
     )
 
     return report
 
 
 def calculate_average_salary_by_continent(dataframe, config, logger):
-    """Calculate average developer salary by continent."""
+    """Calculate average and median developer salary by continent."""
 
     salary_column = config["etl"]["compensation_column"]
 
@@ -53,7 +74,7 @@ def calculate_average_salary_by_continent(dataframe, config, logger):
             "Run the continent transformation first."
         )
 
-    logger.info("Calculating average salary by continent.")
+    logger.info("Calculating average and median salary by continent.")
 
     valid_data = dataframe.dropna(subset=[salary_column])
 
@@ -64,18 +85,21 @@ def calculate_average_salary_by_continent(dataframe, config, logger):
         .agg(
             TotalRespondents=(salary_column, "count"),
             AverageSalaryUSD=(salary_column, "mean"),
+            MedianSalaryUSD=(salary_column, "median"),
         )
         .reset_index()
     )
 
     report["AverageSalaryUSD"] = report["AverageSalaryUSD"].round(2)
+    report["MedianSalaryUSD"] = report["MedianSalaryUSD"].round(2)
 
     report = report.sort_values(
         by="AverageSalaryUSD", ascending=False
     ).reset_index(drop=True)
 
     logger.info(
-        "Average salary report calculated for %d continents.", len(report)
+        "Average and median salary report calculated for %d continents.",
+        len(report),
     )
 
     return report
